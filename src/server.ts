@@ -1,64 +1,21 @@
-import * as app from 'express';
-import { UserModel } from './models';
+import * as express from "express";
+import { routes } from "./routes/routes";
+import { initializeDatabase } from "./database/database";
 
-const server = app();
-const router = app.Router();
+const app = express();
 
-const STATUS = {
-  OK: 200,
-  CREATED: 201,
-  UPDATED: 201,
-  NOT_FOUND: 400,
-  BAD_REQUEST: 400,
-  INTERNAL_SERVER_ERROR: 500,
-  DEFAULT_ERROR: 418,
-};
+(async () => {
+  await initializeDatabase();
 
-router.get('/user', async (req, res) => {
-  const { page, limit } = req.query;
+  app.use(express.json());
 
-  const [users, total] = await Promise.all([
-    UserModel.find().lean(),
-    UserModel.count(),
-  ]);
+  app.use(routes);
 
-  return res.json({
-    rows: users,
-    page,
-    limit,
-    total,
+  app.listen(3003, () => {
+    console.log("Server started on port 3003");
   });
+})().catch((error) => {
+  console.error("Failed to start the server:", error);
+
+  process.exit(1);
 });
-
-router.get('/users/:id', async (req, res) => {
-  const { id } = req.params;
-
-  const user = await UserModel.findOne({ _id: id }).lean();
-
-  if (!user) {
-    res.status(STATUS.INTERNAL_SERVER_ERROR).json({ message: 'Region not found' });
-  }
-
-  return user;
-});
-
-router.put('/users/:id', async (req, res) => {
-  const { id } = req.params;
-  const { update } = req.body;
-
-  const user = await UserModel.findOne({ _id: id }).lean();
-
-  if (!user) {
-    res.status(STATUS.DEFAULT_ERROR).json({ message: 'Region not found' });
-  }
-
-  user.name = update.name;
-
-  await user.save();
-
-  return res.sendStatus(201);
-});
-
-server.use(router);
-
-export default server.listen(3003);
