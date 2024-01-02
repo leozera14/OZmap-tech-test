@@ -6,6 +6,8 @@ import {
   createUser,
 } from "../controllers/index";
 
+import GeoLib from "../lib";
+
 export const routes = Router();
 
 // GET Routes //

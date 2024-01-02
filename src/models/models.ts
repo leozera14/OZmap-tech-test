@@ -9,7 +9,7 @@ import {
   Ref,
   modelOptions,
 } from "@typegoose/typegoose";
-import lib from "../lib";
+import GeoLib from "../lib";
 
 import ObjectId = mongoose.Types.ObjectId;
 
@@ -22,9 +22,9 @@ class Base extends TimeStamps {
   const region = this as Omit<any, keyof User> & User;
 
   if (region.isModified("coordinates")) {
-    region.address = await lib.getAddressFromCoordinates(region.coordinates);
+    region.address = await GeoLib.getAddressFromCoordinates(region.coordinates);
   } else if (region.isModified("address")) {
-    const { lat, lng } = await lib.getCoordinatesFromAddress(region.address);
+    const { lat, lng } = await GeoLib.getCoordinatesFromAddress(region.address);
 
     region.coordinates = [lng, lat];
   }
