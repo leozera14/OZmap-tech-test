@@ -1,6 +1,6 @@
 import { Request, Response } from "express";
 
-import { UserModel } from "../models/models";
+import { User, UserModel } from "../models/models";
 
 import { HTTP_STATUS_CODE } from "../constants";
 
@@ -48,6 +48,22 @@ export const getUserById = async (req: Request, res: Response) => {
 };
 
 // Create Methods //
+export const createUser = async (req: Request, res: Response) => {
+  try {
+    const userInfos: User = req.body;
+
+    const result = await UserModel.create(userInfos);
+
+    return res
+      .status(HTTP_STATUS_CODE.CREATED)
+      .json(`User ${result.name} successfully created!`);
+  } catch (error) {
+    console.log("error", error);
+    return res
+      .status(HTTP_STATUS_CODE.DEFAULT_ERROR)
+      .json("Failed to create user!");
+  }
+};
 
 // Edit Methods //
 export const editUserInfos = async (req: Request, res: Response) => {
