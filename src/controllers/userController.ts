@@ -21,9 +21,10 @@ export const getAllUsers = async (req: Request, res: Response) => {
       total,
     });
   } catch (error) {
-    return res
-      .status(HTTP_STATUS_CODE.DEFAULT_ERROR)
-      .json("Failed to get all users!");
+    return res.status(HTTP_STATUS_CODE.DEFAULT_ERROR).json({
+      message: "Failed to get all users!",
+      error: error.message || "",
+    });
   }
 };
 
@@ -41,9 +42,10 @@ export const getUserById = async (req: Request, res: Response) => {
 
     return user;
   } catch (error) {
-    return res
-      .status(HTTP_STATUS_CODE.DEFAULT_ERROR)
-      .json("Failed to get current user!");
+    return res.status(HTTP_STATUS_CODE.DEFAULT_ERROR).json({
+      message: "Failed to get current user!",
+      error: error.message || "",
+    });
   }
 };
 
@@ -58,10 +60,11 @@ export const createUser = async (req: Request, res: Response) => {
       .status(HTTP_STATUS_CODE.CREATED)
       .json(`User ${result.name} successfully created!`);
   } catch (error) {
-    console.log("error", error);
-    return res
-      .status(HTTP_STATUS_CODE.DEFAULT_ERROR)
-      .json("Failed to create user!");
+    console.log(error);
+    return res.status(HTTP_STATUS_CODE.DEFAULT_ERROR).json({
+      message: "Failed to create user!",
+      error: error.message || "",
+    });
   }
 };
 
@@ -85,8 +88,9 @@ export const editUserInfos = async (req: Request, res: Response) => {
       .status(HTTP_STATUS_CODE.CREATED)
       .json("User successfully edited!");
   } catch (error) {
-    return res
-      .status(HTTP_STATUS_CODE.DEFAULT_ERROR)
-      .json("Failed to edit current user!");
+    return res.status(HTTP_STATUS_CODE.DEFAULT_ERROR).json({
+      message: "Failed to edit current user!",
+      error: error.message || "",
+    });
   }
 };

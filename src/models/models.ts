@@ -21,6 +21,12 @@ class Base extends TimeStamps {
 @pre<User>("save", async function (next) {
   const region = this as Omit<any, keyof User> & User;
 
+  if (region.isModified("coordinates") && region.isModified("address")) {
+    throw new Error(
+      "Only address or coordinates should be provided, not both. Try again with the correct payload!"
+    );
+  }
+
   if (region.isModified("coordinates")) {
     region.address = await GeoLib.getAddressFromCoordinates(region.coordinates);
   } else if (region.isModified("address")) {
@@ -38,10 +44,19 @@ export class User extends Base {
   @Prop({ required: true })
   email!: string;
 
-  @Prop({ required: true })
+  @Prop({
+    required: function () {
+      return !this.coordinates;
+    },
+  })
   address: string;
 
-  @Prop({ required: true, type: () => [Number] })
+  @Prop({
+    required: function () {
+      return !this.address;
+    },
+    type: () => [Number],
+  })
   coordinates: [number, number];
 
   @Prop({ required: true, default: [], ref: () => Region, type: () => String })

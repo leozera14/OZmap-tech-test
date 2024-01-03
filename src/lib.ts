@@ -10,7 +10,6 @@ class GeoLib {
   public async getAddressFromCoordinates(
     coordinates: [number, number] | { lat: number; lng: number }
   ): Promise<string> {
-    console.log("coord", coordinates);
     try {
       const [lat, lng] = Array.isArray(coordinates)
         ? coordinates
@@ -33,8 +32,6 @@ class GeoLib {
   public async getCoordinatesFromAddress(
     address: string
   ): Promise<{ lat: number; lng: number }> {
-    console.log("address", address);
-
     try {
       const url = `${this.baseUrl}?address=${encodeURIComponent(address)}&key=${
         this.apiKey
