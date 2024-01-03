@@ -21,6 +21,12 @@ class Base extends TimeStamps {
 @pre<User>("save", async function (next) {
   const region = this as Omit<any, keyof User> & User;
 
+  if (!region.isModified("coordinates") && !region.isModified("address")) {
+    throw new Error(
+      "You need to give your address or coordinates. Try again with the correct payload!"
+    );
+  }
+
   if (region.isModified("coordinates") && region.isModified("address")) {
     throw new Error(
       "Only address or coordinates should be provided, not both. Try again with the correct payload!"
