@@ -128,7 +128,6 @@ export const deleteUser = async (req: Request, res: Response) => {
 
     return res.status(HTTP_STATUS_CODE.OK).json("User successfully deleted!");
   } catch (error) {
-    console.log(error);
     return res.status(HTTP_STATUS_CODE.DEFAULT_ERROR).json({
       message: "Failed to delete user!",
       error: error.message || "",

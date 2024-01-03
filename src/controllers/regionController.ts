@@ -1,6 +1,6 @@
 import { Request, Response } from "express";
 
-import { Region, RegionModel } from "../models/models";
+import { Region, RegionModel, UserModel } from "../models/models";
 
 import { HTTP_STATUS_CODE } from "../constants";
 
@@ -47,4 +47,32 @@ export const editRegionById = async (req: Request, res: Response) => {};
 
 // Delete Methods //
 
-export const deleteRegion = async (req: Request, res: Response) => {};
+export const deleteRegion = async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+
+    if (!id) {
+      res
+        .status(HTTP_STATUS_CODE.BAD_REQUEST)
+        .json({ message: "Region ID is required!" });
+    }
+
+    //Delete the region referenced in the User
+    await UserModel.updateOne({ regions: id }, { $pull: { regions: id } });
+
+    const deleteUser = await RegionModel.deleteOne({ _id: id });
+
+    if (deleteUser.deletedCount === 0) {
+      res
+        .status(HTTP_STATUS_CODE.NOT_FOUND)
+        .json({ message: "Region not found!" });
+    }
+
+    return res.status(HTTP_STATUS_CODE.OK).json("Region successfully deleted!");
+  } catch (error) {
+    return res.status(HTTP_STATUS_CODE.DEFAULT_ERROR).json({
+      message: "Failed to delete region!",
+      error: error.message || "",
+    });
+  }
+};

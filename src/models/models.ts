@@ -101,7 +101,7 @@ export class Region extends Base {
   @Prop({ required: true })
   name!: string;
 
-  @Prop({ required: true })
+  @Prop({ required: true, type: () => [Number] })
   coordinates: [number, number];
 
   @Prop({ ref: () => User, required: true, type: () => String })

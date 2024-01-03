@@ -6,35 +6,32 @@ import {
   createUser,
   deleteUser,
   createRegion,
+  deleteRegion,
 } from "../controllers/index";
 
 export const routes = Router();
 
+/* ------------- USER ROUTES ------------- */
+
 // GET Routes
-
-/* Users */
-
 routes.get("/users", getAllUsers);
 routes.get("/users/:id", getUserById);
 
 // POST Routes
-
-/* Users */
-
 routes.post("/users", createUser);
 
-/* Regions */
-
-routes.post("/regions", createRegion);
-
 // PUT Routes
-
-/* Users */
-
 routes.put("/users/:id", editUserInfos);
 
 // Delete Routes
-
-/* Users */
-
 routes.delete("/users/:id", deleteUser);
+
+/* ------------- REGION ROUTES ------------- */
+
+// GET Routes
+
+// POST Routes
+routes.post("/regions", createRegion);
+
+// Delete Routes
+routes.delete("/regions/:id", deleteRegion);
