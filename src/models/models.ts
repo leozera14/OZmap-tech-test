@@ -42,6 +42,18 @@ class Base extends TimeStamps {
     }
   }
 
+  //Here we validate if a existent User changes his address / coordinates by the PUT Route,
+  //And if it's was changed we also update the current Region referenced coordinates
+  if (user.isModified("coordinates") && !user.isNew) {
+    const newCoordinates = user.coordinates;
+
+    // Update all regions associated with this user
+    await RegionModel.updateMany(
+      { _id: { $in: user.regions } },
+      { $set: { coordinates: newCoordinates } }
+    );
+  }
+
   next();
 })
 export class User extends Base {

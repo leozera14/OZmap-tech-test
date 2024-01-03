@@ -78,7 +78,7 @@ export const createUser = async (req: Request, res: Response) => {
 export const editUserInfos = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
-    const { update } = req.body;
+    const updatedUserInfo = req.body;
 
     if (!id) {
       res
@@ -86,19 +86,21 @@ export const editUserInfos = async (req: Request, res: Response) => {
         .json({ message: "User ID is required!" });
     }
 
-    const updatedUser = await UserModel.findByIdAndUpdate(id, update, {
-      new: true,
-    }).lean();
+    const findUser = await UserModel.findById(id);
 
-    if (!updatedUser) {
+    if (!findUser) {
       res
         .status(HTTP_STATUS_CODE.NOT_FOUND)
         .json({ message: "User not found" });
     }
 
+    Object.assign(findUser, updatedUserInfo);
+
+    const updatedUser = await findUser.save();
+
     return res
       .status(HTTP_STATUS_CODE.UPDATED)
-      .json("User successfully edited!");
+      .json(`User ${updatedUser.name} successfully edited!`);
   } catch (error) {
     return res.status(HTTP_STATUS_CODE.DEFAULT_ERROR).json({
       message: "Failed to edit current user!",
