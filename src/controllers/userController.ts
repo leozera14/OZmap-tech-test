@@ -61,11 +61,11 @@ export const createUser = async (req: Request, res: Response) => {
   try {
     const userInfos: User = req.body;
 
-    const result = await UserModel.create(userInfos);
+    const createdUser = await UserModel.create(userInfos);
 
     return res
       .status(HTTP_STATUS_CODE.CREATED)
-      .json(`User ${result.name} successfully created!`);
+      .json(`User ${createdUser.name} successfully created!`);
   } catch (error) {
     return res.status(HTTP_STATUS_CODE.DEFAULT_ERROR).json({
       message: "Failed to create user!",

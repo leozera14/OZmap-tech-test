@@ -19,26 +19,27 @@ class Base extends TimeStamps {
 }
 
 @pre<User>("save", async function (next) {
-  const region = this as Omit<any, keyof User> & User;
+  const user = this as Omit<any, keyof User> & User;
 
-  if (!region.isModified("coordinates") && !region.isModified("address")) {
-    throw new Error(
-      "You need to give your address or coordinates. Try again with the correct payload!"
-    );
-  }
+  if (user.isModified("address") || user.isModified("coordinates")) {
+    if (!user.isModified("coordinates") && !user.isModified("address")) {
+      throw new Error(
+        "You need to give your address or coordinates. Try again with the correct payload!"
+      );
+    }
 
-  if (region.isModified("coordinates") && region.isModified("address")) {
-    throw new Error(
-      "Only address or coordinates should be provided, not both. Try again with the correct payload!"
-    );
-  }
+    if (user.isModified("coordinates") && user.isModified("address")) {
+      throw new Error(
+        "Only address or coordinates should be provided, not both. Try again with the correct payload!"
+      );
+    }
 
-  if (region.isModified("coordinates")) {
-    region.address = await GeoLib.getAddressFromCoordinates(region.coordinates);
-  } else if (region.isModified("address")) {
-    const { lat, lng } = await GeoLib.getCoordinatesFromAddress(region.address);
-
-    region.coordinates = [lng, lat];
+    if (user.isModified("coordinates")) {
+      user.address = await GeoLib.getAddressFromCoordinates(user.coordinates);
+    } else if (user.isModified("address")) {
+      const { lat, lng } = await GeoLib.getCoordinatesFromAddress(user.address);
+      user.coordinates = [lng, lat];
+    }
   }
 
   next();
@@ -72,13 +73,21 @@ export class User extends Base {
 @pre<Region>("save", async function (next) {
   const region = this as Omit<any, keyof Region> & Region;
 
+  if (!region.user) {
+    throw new Error(
+      "You need to give a valid user ID to reference this region, please try again with the correct payload!"
+    );
+  }
+
   if (!region._id) {
     region._id = new ObjectId().toString();
   }
 
   if (region.isNew) {
     const user = await UserModel.findOne({ _id: region.user });
+
     user.regions.push(region._id);
+
     await user.save({ session: region.$session() });
   }
 
@@ -91,6 +100,9 @@ export class Region extends Base {
 
   @Prop({ required: true })
   name!: string;
+
+  @Prop({ required: true })
+  coordinates: [number, number];
 
   @Prop({ ref: () => User, required: true, type: () => String })
   user: Ref<User>;
