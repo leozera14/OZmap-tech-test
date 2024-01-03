@@ -43,7 +43,39 @@ export const createRegion = async (req: Request, res: Response) => {
 
 // Edit Methods //
 
-export const editRegionById = async (req: Request, res: Response) => {};
+export const editRegionById = async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const updatedRegionInfos: Region = req.body;
+
+    if (!id) {
+      res
+        .status(HTTP_STATUS_CODE.BAD_REQUEST)
+        .json({ message: "User ID is required!" });
+    }
+
+    const findRegion = await RegionModel.findById(id);
+
+    if (!findRegion) {
+      res
+        .status(HTTP_STATUS_CODE.NOT_FOUND)
+        .json({ message: "User not found" });
+    }
+
+    Object.assign(findRegion, updatedRegionInfos);
+
+    const updatedUser = await findRegion.save();
+
+    return res
+      .status(HTTP_STATUS_CODE.UPDATED)
+      .json(`Region ${updatedUser.name} successfully updated!`);
+  } catch (error) {
+    return res.status(HTTP_STATUS_CODE.DEFAULT_ERROR).json({
+      message: "Failed to update region!",
+      error: error.message || "",
+    });
+  }
+};
 
 // Delete Methods //
 

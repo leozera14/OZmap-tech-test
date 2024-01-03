@@ -103,6 +103,18 @@ export class User extends Base {
     await user.save({ session: region.$session() });
   }
 
+  if (region.isModified("coordinates") && !region.isNew) {
+    const user = await UserModel.findById(region.user);
+
+    if (!user) {
+      throw new Error("Associated user not found");
+    }
+
+    // Update the user's coordinates
+    user.coordinates = region.coordinates;
+    await user.save();
+  }
+
   next(region.validateSync());
 })
 @modelOptions({ schemaOptions: { validateBeforeSave: false } })

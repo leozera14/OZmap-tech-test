@@ -75,10 +75,10 @@ export const createUser = async (req: Request, res: Response) => {
 };
 
 // Edit Methods //
-export const editUserInfos = async (req: Request, res: Response) => {
+export const editUserById = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
-    const updatedUserInfo = req.body;
+    const updatedUserInfo: User = req.body;
 
     if (!id) {
       res
@@ -100,10 +100,10 @@ export const editUserInfos = async (req: Request, res: Response) => {
 
     return res
       .status(HTTP_STATUS_CODE.UPDATED)
-      .json(`User ${updatedUser.name} successfully edited!`);
+      .json(`User ${updatedUser.name} successfully updated!`);
   } catch (error) {
     return res.status(HTTP_STATUS_CODE.DEFAULT_ERROR).json({
-      message: "Failed to edit current user!",
+      message: "Failed to update current user!",
       error: error.message || "",
     });
   }
