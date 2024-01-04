@@ -15,23 +15,28 @@ describe("Models", () => {
   let user;
   let session;
   let geoLibStub: Partial<typeof GeoLib> = {};
+  let sharedAddress: string;
+  let sharedLocation;
 
   before(async () => {
+    sharedAddress = faker.location.streetAddress({ useFullAddress: true });
+    sharedLocation = {
+      lng: faker.location.longitude(),
+      lat: faker.location.latitude(),
+    };
+
     geoLibStub.getAddressFromCoordinates = sinon
       .stub(GeoLib, "getAddressFromCoordinates")
-      .resolves(faker.location.streetAddress({ useFullAddress: true }));
+      .resolves(sharedAddress);
     geoLibStub.getCoordinatesFromAddress = sinon
       .stub(GeoLib, "getCoordinatesFromAddress")
-      .resolves({
-        lat: faker.location.latitude(),
-        lng: faker.location.longitude(),
-      });
+      .resolves(sharedLocation);
 
     session = await mongoose.startSession();
     user = await UserModel.create({
       name: faker.person.firstName(),
       email: faker.internet.email(),
-      address: faker.location.streetAddress({ useFullAddress: true }),
+      address: sharedAddress,
     });
   });
 
@@ -56,14 +61,18 @@ describe("Models", () => {
 
   describe("RegionModel", () => {
     it("should create a region", async () => {
-      const regionData: Omit<Region, "_id"> = {
+      const regionData: Omit<Region, "_id" | "boundary"> = {
         user: user._id,
         name: faker.person.fullName(),
+        address: sharedAddress,
+        coordinates: [sharedLocation.lng, sharedLocation.lat],
       };
 
-      const [region] = await RegionModel.create([regionData]);
+      const newRegion = new RegionModel(regionData);
 
-      expect(region).to.deep.include(regionData);
+      const saveNewRegion = await newRegion.save();
+
+      expect(saveNewRegion).to.deep.include(regionData);
     });
 
     it("should rollback changes in case of failure", async () => {
@@ -85,7 +94,7 @@ describe("Models", () => {
   });
 
   it("should return a list of users", async () => {
-    const response = supertest(server).get(`/user`);
+    const response = await supertest(server).get(`/users`);
 
     expect(response).to.have.property("status", 200);
   });
