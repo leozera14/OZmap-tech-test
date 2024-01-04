@@ -13,9 +13,13 @@ import {
 } from "@typegoose/typegoose";
 import GeoLib from "../utils/lib";
 
-import ObjectId = mongoose.Types.ObjectId;
 import { calculateCircularBoundary } from "../utils/calculateBoundary";
-import { BOUNDARY_NUM_SIDES, BOUNDARY_RADIUS_IN_METERS } from "../constants";
+import {
+  BOUNDARY_NUM_SIDES,
+  BOUNDARY_RADIUS_IN_METERS,
+} from "../constants/constants";
+
+import ObjectId = mongoose.Types.ObjectId;
 
 class Base extends TimeStamps {
   @Prop({ required: true, default: () => new ObjectId().toString() })

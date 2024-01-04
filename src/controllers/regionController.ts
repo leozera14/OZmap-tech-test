@@ -5,12 +5,12 @@ import { Region, RegionModel, UserModel } from "../models/models";
 import {
   BOUNDARY_NUM_SIDES,
   BOUNDARY_RADIUS_IN_METERS,
-  HTTP_STATUS_CODE,
   NEARBY_MAX_DISTANCE_IN_METERS,
-} from "../constants";
+} from "../constants/constants";
 
 import { calculateCircularBoundary } from "../utils/calculateBoundary";
 import { validateCoordinatesSpecificPoint } from "../utils/validateCoordinates";
+import responseUtils from "../utils/controllerResUtil";
 import { IQueryConditions } from "../types/regionController";
 
 // GET and Find Methods //
@@ -19,9 +19,10 @@ export const getRegionBySpecificPoint = async (req: Request, res: Response) => {
     const { address, lat, lng } = req.query;
 
     if (!address && !lat && !lng) {
-      return res
-        .status(HTTP_STATUS_CODE.NOT_FOUND)
-        .json("Either address or coordinates must be provided!");
+      return responseUtils.sendNotFound(
+        res,
+        "Either address or coordinates must be provided"
+      );
     }
 
     const validatedCoordinates = validateCoordinatesSpecificPoint(
@@ -39,15 +40,17 @@ export const getRegionBySpecificPoint = async (req: Request, res: Response) => {
       },
     }).select("-boundary");
 
-    return res.status(HTTP_STATUS_CODE.OK).json({
-      message: "Localization found successfully!",
-      localization: regionsByThePoint,
-    });
+    return responseUtils.sendSuccess(
+      res,
+      regionsByThePoint,
+      "Localization successfully found!"
+    );
   } catch (error) {
-    return res.status(HTTP_STATUS_CODE.DEFAULT_ERROR).json({
-      message: "Failed to get the specific region!",
-      error: error.message || "",
-    });
+    return responseUtils.sendDefaultError(
+      res,
+      "Failed to get the specific region!",
+      error
+    );
   }
 };
 
@@ -56,9 +59,10 @@ export const getRegionByDistance = async (req: Request, res: Response) => {
     const { address, lng, lat, userId, distance } = req.query;
 
     if (!address && !lat && !lng) {
-      return res
-        .status(HTTP_STATUS_CODE.NOT_FOUND)
-        .json("Either address or coordinates must be provided!");
+      return responseUtils.sendNotFound(
+        res,
+        "Either address or coordinates must be provided"
+      );
     }
 
     const validatedCoordinates = await validateCoordinatesSpecificPoint(
@@ -90,15 +94,17 @@ export const getRegionByDistance = async (req: Request, res: Response) => {
       "-boundary"
     );
 
-    return res.status(HTTP_STATUS_CODE.OK).json({
-      message: "Localization found successfully!",
-      localization: localizationNearBy,
-    });
+    return responseUtils.sendSuccess(
+      res,
+      localizationNearBy,
+      "Localization successfully found!"
+    );
   } catch (error) {
-    return res.status(HTTP_STATUS_CODE.DEFAULT_ERROR).json({
-      message: "Failed to get the specific region!",
-      error: error.message || "",
-    });
+    return responseUtils.sendDefaultError(
+      res,
+      "Failed to get the region by distance!",
+      error
+    );
   }
 };
 
@@ -113,9 +119,10 @@ export const createRegion = async (req: Request, res: Response) => {
     }).lean();
 
     if (validateIfRegionExists) {
-      return res
-        .status(HTTP_STATUS_CODE.BAD_REQUEST)
-        .json("Region coordinates already exists!");
+      return responseUtils.sendBadRequest(
+        res,
+        "Region coordinates already exists!"
+      );
     }
 
     const calculatedLocBoundary = calculateCircularBoundary(
@@ -136,32 +143,37 @@ export const createRegion = async (req: Request, res: Response) => {
 
     const savedRegion = await newRegion.save();
 
-    const foundRegionUser = await UserModel.findById(savedRegion.user);
+    const foundUserWithRegionReference = await UserModel.findById(
+      savedRegion.user
+    );
 
-    if (foundRegionUser) {
-      foundRegionUser.regions.push(savedRegion._id);
+    if (foundUserWithRegionReference) {
+      foundUserWithRegionReference.regions.push(savedRegion._id);
 
-      await foundRegionUser.save();
+      await foundUserWithRegionReference.save();
     }
 
-    return res
-      .status(HTTP_STATUS_CODE.CREATED)
-      .json(`User ${savedRegion.name} successfully created!`);
+    return responseUtils.sendCreated(
+      res,
+      savedRegion,
+      `Region ${savedRegion.name} successfully created!`
+    );
   } catch (error) {
     //Return a message if get an generic error returned by the Geo Lib
     //If region coordinates was not found
     if (error.message.includes("Can't extract geo keys")) {
-      return res.status(HTTP_STATUS_CODE.NOT_FOUND).json({
-        message: "Failed to create region",
-        error: "Region coordinates not found, please verify it and try again!",
-      });
+      return responseUtils.sendBadRequest(
+        res,
+        "Region coordinates not found, please verify it and try again!"
+      );
     }
 
     //If is other type of error return the generic message
-    return res.status(HTTP_STATUS_CODE.DEFAULT_ERROR).json({
-      message: "Failed to create region",
-      error: error.message || "",
-    });
+    return responseUtils.sendDefaultError(
+      res,
+      "Failed to create region!",
+      error
+    );
   }
 };
 
@@ -173,32 +185,31 @@ export const editRegionById = async (req: Request, res: Response) => {
     const updatedRegionInfos: Region = req.body;
 
     if (!id) {
-      res
-        .status(HTTP_STATUS_CODE.BAD_REQUEST)
-        .json({ message: "User ID is required!" });
+      return responseUtils.sendBadRequest(res, "Region ID is required!");
     }
 
     const findRegion = await RegionModel.findById(id);
 
     if (!findRegion) {
-      res
-        .status(HTTP_STATUS_CODE.NOT_FOUND)
-        .json({ message: "User not found" });
+      return responseUtils.sendNotFound(res, "Region not found!");
     }
 
     //Apply the updated values to the document
     Object.assign(findRegion, updatedRegionInfos);
 
-    const updatedUser = await findRegion.save();
+    const updatedRegion = await findRegion.save();
 
-    return res
-      .status(HTTP_STATUS_CODE.UPDATED)
-      .json(`Region ${updatedUser.name} successfully updated!`);
+    return responseUtils.sendUpdated(
+      res,
+      updatedRegion,
+      `Region ${updatedRegion.name} successfully updated!`
+    );
   } catch (error) {
-    return res.status(HTTP_STATUS_CODE.DEFAULT_ERROR).json({
-      message: "Failed to update region!",
-      error: error.message || "",
-    });
+    return responseUtils.sendDefaultError(
+      res,
+      "Failed to update region!",
+      error
+    );
   }
 };
 
@@ -209,27 +220,24 @@ export const deleteRegion = async (req: Request, res: Response) => {
     const { id } = req.params;
 
     if (!id) {
-      res
-        .status(HTTP_STATUS_CODE.BAD_REQUEST)
-        .json({ message: "Region ID is required!" });
+      return responseUtils.sendBadRequest(res, "Region ID is required!");
     }
 
     const deletedRegion = await RegionModel.deleteOne({ _id: id });
 
     if (deletedRegion.deletedCount === 0) {
-      res
-        .status(HTTP_STATUS_CODE.NOT_FOUND)
-        .json({ message: "Region not found!" });
+      return responseUtils.sendNotFound(res, "Region not found!");
     }
 
     //Delete the region referenced in the User
     await UserModel.updateOne({ regions: id }, { $pull: { regions: id } });
 
-    return res.status(HTTP_STATUS_CODE.OK).json("Region successfully deleted!");
+    return responseUtils.sendSuccess(res, "", "Region successfully deleted!");
   } catch (error) {
-    return res.status(HTTP_STATUS_CODE.DEFAULT_ERROR).json({
-      message: "Failed to delete region!",
-      error: error.message || "",
-    });
+    return responseUtils.sendDefaultError(
+      res,
+      "Failed to delete region!",
+      error
+    );
   }
 };

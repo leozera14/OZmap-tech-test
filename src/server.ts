@@ -5,7 +5,7 @@ import * as express from "express";
 import { routes } from "./routes/routes";
 import { connectWithDatabase } from "./database/database";
 import mongoose from "mongoose";
-import { SERVER_PORT_CONNECTION } from "./constants";
+import { SERVER_PORT_CONNECTION } from "./constants/constants";
 
 connectWithDatabase();
 

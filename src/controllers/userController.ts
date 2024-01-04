@@ -2,7 +2,7 @@ import { Request, Response } from "express";
 
 import { RegionModel, User, UserModel } from "../models/models";
 
-import { HTTP_STATUS_CODE } from "../constants";
+import responseUtils from "../utils/controllerResUtil";
 
 // GET and Find Methods //
 export const getAllUsers = async (req: Request, res: Response) => {
@@ -14,17 +14,15 @@ export const getAllUsers = async (req: Request, res: Response) => {
       UserModel.count(),
     ]);
 
-    return res.status(HTTP_STATUS_CODE.OK).json({
-      rows: users,
-      page,
-      limit,
-      total,
-    });
+    const dataToReturn = { rows: users, page, limit, total };
+
+    return responseUtils.sendSuccess(res, dataToReturn);
   } catch (error) {
-    return res.status(HTTP_STATUS_CODE.DEFAULT_ERROR).json({
-      message: "Failed to get all users!",
-      error: error.message || "",
-    });
+    return responseUtils.sendDefaultError(
+      res,
+      "Failed to get all users!",
+      error
+    );
   }
 };
 
@@ -33,26 +31,26 @@ export const getUserById = async (req: Request, res: Response) => {
     const { id } = req.params;
 
     if (!id) {
-      res
-        .status(HTTP_STATUS_CODE.BAD_REQUEST)
-        .json({ message: "User ID is required!" });
+      return responseUtils.sendBadRequest(res, "User ID is required!");
     }
 
     //Use lean method to read and get data faster
     const user = await UserModel.findOne({ _id: id }).lean();
 
     if (!user) {
-      res
-        .status(HTTP_STATUS_CODE.NOT_FOUND)
-        .json({ message: "User not found, verify the ID and try again!" });
+      return responseUtils.sendNotFound(
+        res,
+        "User not found, verify the ID and try again!"
+      );
     }
 
-    return res.status(HTTP_STATUS_CODE.OK).json(user);
+    return responseUtils.sendSuccess(res, user);
   } catch (error) {
-    return res.status(HTTP_STATUS_CODE.DEFAULT_ERROR).json({
-      message: "Failed to get current user!",
-      error: error.message || "",
-    });
+    return responseUtils.sendDefaultError(
+      res,
+      "Failed to get current user!",
+      error
+    );
   }
 };
 
@@ -63,14 +61,13 @@ export const createUser = async (req: Request, res: Response) => {
 
     const createdUser = await UserModel.create(userInfos);
 
-    return res
-      .status(HTTP_STATUS_CODE.CREATED)
-      .json(`User ${createdUser.name} successfully created!`);
+    return responseUtils.sendCreated(
+      res,
+      createdUser,
+      `User ${createdUser.name} successfully created!`
+    );
   } catch (error) {
-    return res.status(HTTP_STATUS_CODE.DEFAULT_ERROR).json({
-      message: "Failed to create user!",
-      error: error.message || "",
-    });
+    return responseUtils.sendDefaultError(res, "Failed to create user!", error);
   }
 };
 
@@ -81,17 +78,13 @@ export const editUserById = async (req: Request, res: Response) => {
     const updatedUserInfo: User = req.body;
 
     if (!id) {
-      res
-        .status(HTTP_STATUS_CODE.BAD_REQUEST)
-        .json({ message: "User ID is required!" });
+      return responseUtils.sendBadRequest(res, "User ID is required!");
     }
 
     const findUser = await UserModel.findById(id);
 
     if (!findUser) {
-      res
-        .status(HTTP_STATUS_CODE.NOT_FOUND)
-        .json({ message: "User not found" });
+      return responseUtils.sendNotFound(res, "User not found!");
     }
 
     //Apply the updated values to the document
@@ -99,14 +92,13 @@ export const editUserById = async (req: Request, res: Response) => {
 
     const updatedUser = await findUser.save();
 
-    return res
-      .status(HTTP_STATUS_CODE.UPDATED)
-      .json(`User ${updatedUser.name} successfully updated!`);
+    return responseUtils.sendUpdated(
+      res,
+      updatedUser,
+      `User ${updatedUser.name} successfully updated!`
+    );
   } catch (error) {
-    return res.status(HTTP_STATUS_CODE.DEFAULT_ERROR).json({
-      message: "Failed to update current user!",
-      error: error.message || "",
-    });
+    return responseUtils.sendDefaultError(res, "Failed to update user!", error);
   }
 };
 
@@ -116,27 +108,20 @@ export const deleteUser = async (req: Request, res: Response) => {
     const { id } = req.params;
 
     if (!id) {
-      res
-        .status(HTTP_STATUS_CODE.BAD_REQUEST)
-        .json({ message: "User ID is required!" });
+      return responseUtils.sendBadRequest(res, "User ID is required");
     }
 
     const deleteUser = await UserModel.findByIdAndDelete(id);
 
     if (!deleteUser) {
-      res
-        .status(HTTP_STATUS_CODE.NOT_FOUND)
-        .json({ message: "User not found!" });
+      return responseUtils.sendNotFound(res, "User not found!");
     }
 
     //Delete the User referenced in the Region
     await RegionModel.updateMany({ user: id }, { $unset: { user: "" } });
 
-    return res.status(HTTP_STATUS_CODE.OK).json("User successfully deleted!");
+    return responseUtils.sendSuccess(res, "", "User succesfully deleted!");
   } catch (error) {
-    return res.status(HTTP_STATUS_CODE.DEFAULT_ERROR).json({
-      message: "Failed to delete user!",
-      error: error.message || "",
-    });
+    return responseUtils.sendDefaultError(res, "Failed to delete user!", error);
   }
 };
