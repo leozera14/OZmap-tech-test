@@ -1,4 +1,4 @@
-import GeoLib from "./lib";
+import GeoLib from "./geoLib";
 
 export const validateCoordinatesSpecificPoint = async (
   address: string,

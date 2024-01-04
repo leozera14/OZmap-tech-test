@@ -8,7 +8,7 @@ import { expect, assert } from "chai";
 
 import "./database/database";
 import { Region, RegionModel, UserModel } from "./models/models";
-import GeoLib from "./utils/lib";
+import GeoLib from "./utils/geoLib";
 import server from "./server";
 
 describe("Models", () => {

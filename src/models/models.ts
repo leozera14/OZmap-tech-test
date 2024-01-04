@@ -11,7 +11,7 @@ import {
   index,
   Severity,
 } from "@typegoose/typegoose";
-import GeoLib from "../utils/lib";
+import GeoLib from "../utils/geoLib";
 
 import { calculateCircularBoundary } from "../utils/calculateBoundary";
 import {
