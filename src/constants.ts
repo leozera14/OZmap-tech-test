@@ -9,3 +9,9 @@ export const HTTP_STATUS_CODE = {
 };
 
 export const SERVER_PORT_CONNECTION = 3003;
+
+export const BOUNDARY_RADIUS_IN_METERS = 1000;
+
+export const BOUNDARY_NUM_SIDES = 32;
+
+export const NEARBY_MAX_DISTANCE_IN_METERS = 5000;

@@ -9,10 +9,13 @@ import {
   Ref,
   modelOptions,
   index,
+  Severity,
 } from "@typegoose/typegoose";
-import GeoLib from "../lib";
+import GeoLib from "../utils/lib";
 
 import ObjectId = mongoose.Types.ObjectId;
+import { calculateCircularBoundary } from "../utils/calculateBoundary";
+import { BOUNDARY_NUM_SIDES, BOUNDARY_RADIUS_IN_METERS } from "../constants";
 
 class Base extends TimeStamps {
   @Prop({ required: true, default: () => new ObjectId().toString() })
@@ -137,9 +140,27 @@ export class User extends Base {
     await user.save({ session: region.$session() });
   }
 
+  // Calculate boundary when coordinates are modified or when a new region is created
+  if (region.isModified("coordinates") || region.isNew) {
+    region.boundary = {
+      type: "Polygon",
+      coordinates: [
+        calculateCircularBoundary(
+          region.coordinates,
+          BOUNDARY_RADIUS_IN_METERS,
+          BOUNDARY_NUM_SIDES
+        ),
+      ],
+    };
+  }
+
   next(region.validateSync());
 })
-@modelOptions({ schemaOptions: { validateBeforeSave: false } })
+@modelOptions({
+  schemaOptions: { validateBeforeSave: false },
+  options: { allowMixed: Severity.ALLOW },
+})
+@index({ boundary: "2dsphere" })
 @index({ coordinates: "2dsphere" })
 export class Region extends Base {
   @Prop({ required: true, auto: true })
@@ -156,6 +177,15 @@ export class Region extends Base {
 
   @Prop({ ref: () => User, required: true, type: () => String })
   user: Ref<User>;
+
+  @Prop({
+    required: false,
+    type: mongoose.Schema.Types.Mixed,
+  })
+  boundary: {
+    type: string;
+    coordinates: number[][][];
+  };
 }
 
 export const UserModel = getModelForClass(User);

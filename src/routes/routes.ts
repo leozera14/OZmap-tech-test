@@ -9,6 +9,7 @@ import {
   deleteRegion,
   editRegionById,
   getRegionBySpecificPoint,
+  getRegionByDistance,
 } from "../controllers/index";
 
 export const routes = Router();
@@ -31,7 +32,8 @@ routes.delete("/users/:id", deleteUser);
 /* ------------- REGION ROUTES ------------- */
 
 // GET Routes
-routes.get("/regions/nearby", getRegionBySpecificPoint);
+routes.get("/regions/regionByPoint", getRegionBySpecificPoint);
+routes.get("/regions/regionByDistance", getRegionByDistance);
 
 // POST Routes
 routes.post("/regions", createRegion);

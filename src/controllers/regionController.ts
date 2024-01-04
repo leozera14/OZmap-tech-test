@@ -2,50 +2,48 @@ import { Request, Response } from "express";
 
 import { Region, RegionModel, UserModel } from "../models/models";
 
-import { HTTP_STATUS_CODE } from "../constants";
+import {
+  BOUNDARY_NUM_SIDES,
+  BOUNDARY_RADIUS_IN_METERS,
+  HTTP_STATUS_CODE,
+  NEARBY_MAX_DISTANCE_IN_METERS,
+} from "../constants";
 
-import GeoLib from "../lib";
+import { calculateCircularBoundary } from "../utils/calculateBoundary";
+import { validateCoordinatesSpecificPoint } from "../utils/validateCoordinates";
+import { IQueryConditions } from "../types/regionController";
 
 // GET and Find Methods //
 export const getRegionBySpecificPoint = async (req: Request, res: Response) => {
   try {
     const { address, lat, lng } = req.query;
 
-    let coordinates: String | { lat: number; lng: number };
-
-    if (address) {
-      coordinates = await GeoLib.getCoordinatesFromAddress(address as string);
-    } else if (lat && lng) {
-      coordinates = {
-        lat: parseFloat(lat as string),
-        lng: parseFloat(lng as string),
-      };
-    } else {
+    if (!address && !lat && !lng) {
       return res
         .status(HTTP_STATUS_CODE.NOT_FOUND)
         .json("Either address or coordinates must be provided!");
     }
 
-    const maxDistance = 5000; // Max distance in meters to search
+    const validatedCoordinates = validateCoordinatesSpecificPoint(
+      address as string,
+      parseFloat(lng as string),
+      parseFloat(lat as string)
+    );
 
-    const localizationNearBy = await RegionModel.find({
-      coordinates: {
-        $nearSphere: {
-          $geometry: {
-            type: "Point",
-            coordinates: [coordinates.lng, coordinates.lat],
-          },
-          $maxDistance: maxDistance,
+    //Get the Regions nearby the coordinates by the Boundary calculated values.
+    const regionsByThePoint = await RegionModel.find({
+      boundary: {
+        $geoIntersects: {
+          $geometry: { type: "Point", coordinates: validatedCoordinates },
         },
       },
-    });
+    }).select("-boundary");
 
     return res.status(HTTP_STATUS_CODE.OK).json({
       message: "Localization found successfully!",
-      localization: localizationNearBy,
+      localization: regionsByThePoint,
     });
   } catch (error) {
-    console.log("error", error);
     return res.status(HTTP_STATUS_CODE.DEFAULT_ERROR).json({
       message: "Failed to get the specific region!",
       error: error.message || "",
@@ -53,16 +51,65 @@ export const getRegionBySpecificPoint = async (req: Request, res: Response) => {
   }
 };
 
-export const getRegionByDistance = async (req: Request, res: Response) => {};
+export const getRegionByDistance = async (req: Request, res: Response) => {
+  try {
+    const { address, lng, lat, userId, distance } = req.query;
+
+    if (!address && !lat && !lng) {
+      return res
+        .status(HTTP_STATUS_CODE.NOT_FOUND)
+        .json("Either address or coordinates must be provided!");
+    }
+
+    const validatedCoordinates = await validateCoordinatesSpecificPoint(
+      address as string,
+      parseFloat(lng as string),
+      parseFloat(lat as string)
+    );
+
+    const maxDistance = distance ? distance : NEARBY_MAX_DISTANCE_IN_METERS; // Max distance in meters to search by the point referenced.
+
+    //Get the Regions nearby the coordinates given and the distance, also filtered or not by userID.
+    let queryConditions: IQueryConditions = {
+      coordinates: {
+        $nearSphere: {
+          $geometry: {
+            type: "Point",
+            coordinates: validatedCoordinates,
+          },
+          $maxDistance: maxDistance as number,
+        },
+      },
+    };
+
+    if (userId) {
+      queryConditions.user = userId as string;
+    }
+
+    const localizationNearBy = await RegionModel.find(queryConditions).select(
+      "-boundary"
+    );
+
+    return res.status(HTTP_STATUS_CODE.OK).json({
+      message: "Localization found successfully!",
+      localization: localizationNearBy,
+    });
+  } catch (error) {
+    return res.status(HTTP_STATUS_CODE.DEFAULT_ERROR).json({
+      message: "Failed to get the specific region!",
+      error: error.message || "",
+    });
+  }
+};
 
 // Create Methods //
 
 export const createRegion = async (req: Request, res: Response) => {
   try {
-    const regionInfos: Region = req.body;
+    const { coordinates, name, user }: Region = req.body;
 
     const validateIfRegionExists = await RegionModel.findOne({
-      coordinates: regionInfos.coordinates,
+      coordinates: coordinates,
     }).lean();
 
     if (validateIfRegionExists) {
@@ -71,7 +118,21 @@ export const createRegion = async (req: Request, res: Response) => {
         .json("Region coordinates already exists!");
     }
 
-    const newRegion = new RegionModel(regionInfos);
+    const calculatedLocBoundary = calculateCircularBoundary(
+      coordinates,
+      BOUNDARY_RADIUS_IN_METERS,
+      BOUNDARY_NUM_SIDES
+    );
+
+    const newRegion = new RegionModel({
+      name,
+      coordinates,
+      user,
+      boundary: {
+        type: "Polygon",
+        coordinates: [calculatedLocBoundary],
+      },
+    });
 
     const savedRegion = await newRegion.save();
 
@@ -87,7 +148,6 @@ export const createRegion = async (req: Request, res: Response) => {
       .status(HTTP_STATUS_CODE.CREATED)
       .json(`User ${savedRegion.name} successfully created!`);
   } catch (error) {
-    console.log(error);
     //Return a message if get an generic error returned by the Geo Lib
     //If region coordinates was not found
     if (error.message.includes("Can't extract geo keys")) {
