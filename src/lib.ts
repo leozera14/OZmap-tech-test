@@ -8,12 +8,14 @@ class GeoLib {
   }
 
   public async getAddressFromCoordinates(
-    coordinates: [number, number] | { lat: number; lng: number }
+    coordinates: [number, number] | { lng: number; lat: number }
   ): Promise<string> {
     try {
-      const [lat, lng] = Array.isArray(coordinates)
+      //Ensure that the coordinates comes as [lng,lat] because is the standard format
+      //to work using 2dsphere format for coordinates.
+      const [lng, lat] = Array.isArray(coordinates)
         ? coordinates
-        : [coordinates.lat, coordinates.lng];
+        : [coordinates.lng, coordinates.lat];
       const url = `${this.baseUrl}?latlng=${lat},${lng}&key=${this.apiKey}`;
 
       const response = await fetch(url);
@@ -31,7 +33,7 @@ class GeoLib {
 
   public async getCoordinatesFromAddress(
     address: string
-  ): Promise<{ lat: number; lng: number }> {
+  ): Promise<{ lng: number; lat: number }> {
     try {
       const url = `${this.baseUrl}?address=${encodeURIComponent(address)}&key=${
         this.apiKey
@@ -42,7 +44,7 @@ class GeoLib {
 
       if (data.status === "OK") {
         const location = data.results[0].geometry.location;
-        return { lat: location.lat, lng: location.lng };
+        return { lng: location.lng, lat: location.lat };
       } else {
         throw new Error(
           data.error_message || "Unable to find coordinates for address"

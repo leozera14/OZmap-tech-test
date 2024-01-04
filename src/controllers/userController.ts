@@ -94,6 +94,7 @@ export const editUserById = async (req: Request, res: Response) => {
         .json({ message: "User not found" });
     }
 
+    //Apply the updated values to the document
     Object.assign(findUser, updatedUserInfo);
 
     const updatedUser = await findUser.save();

@@ -8,6 +8,7 @@ import {
   Prop,
   Ref,
   modelOptions,
+  index,
 } from "@typegoose/typegoose";
 import GeoLib from "../lib";
 
@@ -37,8 +38,30 @@ class Base extends TimeStamps {
     if (user.isModified("coordinates")) {
       user.address = await GeoLib.getAddressFromCoordinates(user.coordinates);
     } else if (user.isModified("address")) {
-      const { lat, lng } = await GeoLib.getCoordinatesFromAddress(user.address);
+      const { lng, lat } = await GeoLib.getCoordinatesFromAddress(user.address);
       user.coordinates = [lng, lat];
+    }
+
+    //Here we validate if the Region mentioned by User already exists, if not we create
+    //it and associate the User ID in Region and reverse. Also if we validate that the
+    //Region already exists we only ensure that the Region ID will be in User Regions
+    const existingRegion = await RegionModel.findOne({
+      coordinates: user.coordinates,
+    }).exec();
+
+    if (!existingRegion) {
+      const newRegion = new RegionModel({
+        name: `${user.name}'s Region`,
+        coordinates: user.coordinates,
+        user: user._id,
+      });
+      await newRegion.save();
+      user.regions.push(newRegion._id);
+    } else {
+      // If region exists, ensure the user is associated with it
+      if (!user.regions.includes(existingRegion._id)) {
+        user.regions.push(existingRegion._id);
+      }
     }
   }
 
@@ -46,11 +69,12 @@ class Base extends TimeStamps {
   //And if it's was changed we also update the current Region referenced coordinates
   if (user.isModified("coordinates") && !user.isNew) {
     const newCoordinates = user.coordinates;
+    const newAddress = user.address;
 
     // Update all regions associated with this user
     await RegionModel.updateMany(
       { _id: { $in: user.regions } },
-      { $set: { coordinates: newCoordinates } }
+      { $set: { coordinates: newCoordinates, address: newAddress } }
     );
   }
 
@@ -95,12 +119,8 @@ export class User extends Base {
     region._id = new ObjectId().toString();
   }
 
-  if (region.isNew) {
-    const user = await UserModel.findOne({ _id: region.user });
-
-    user.regions.push(region._id);
-
-    await user.save({ session: region.$session() });
+  if (region.isModified("coordinates")) {
+    region.address = await GeoLib.getAddressFromCoordinates(region.coordinates);
   }
 
   if (region.isModified("coordinates") && !region.isNew) {
@@ -112,12 +132,13 @@ export class User extends Base {
 
     // Update the user's coordinates
     user.coordinates = region.coordinates;
-    await user.save();
+    await user.save({ session: region.$session() });
   }
 
   next(region.validateSync());
 })
 @modelOptions({ schemaOptions: { validateBeforeSave: false } })
+@index({ coordinates: "2dsphere" })
 export class Region extends Base {
   @Prop({ required: true, auto: true })
   _id: string;
@@ -127,6 +148,9 @@ export class Region extends Base {
 
   @Prop({ required: true, type: () => [Number] })
   coordinates: [number, number];
+
+  @Prop({ required: false })
+  address: string;
 
   @Prop({ ref: () => User, required: true, type: () => String })
   user: Ref<User>;
