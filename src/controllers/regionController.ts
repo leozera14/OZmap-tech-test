@@ -40,11 +40,6 @@ export const getRegionBySpecificPoint = async (req: Request, res: Response) => {
       },
     });
 
-    console.log("coordinates", {
-      coordinates,
-      localizationNearBy,
-    });
-
     return res.status(HTTP_STATUS_CODE.OK).json({
       message: "Localization found successfully!",
       localization: localizationNearBy,
@@ -159,16 +154,16 @@ export const deleteRegion = async (req: Request, res: Response) => {
         .json({ message: "Region ID is required!" });
     }
 
-    //Delete the region referenced in the User
-    await UserModel.updateOne({ regions: id }, { $pull: { regions: id } });
+    const deletedRegion = await RegionModel.deleteOne({ _id: id });
 
-    const deleteUser = await RegionModel.deleteOne({ _id: id });
-
-    if (deleteUser.deletedCount === 0) {
+    if (deletedRegion.deletedCount === 0) {
       res
         .status(HTTP_STATUS_CODE.NOT_FOUND)
         .json({ message: "Region not found!" });
     }
+
+    //Delete the region referenced in the User
+    await UserModel.updateOne({ regions: id }, { $pull: { regions: id } });
 
     return res.status(HTTP_STATUS_CODE.OK).json("Region successfully deleted!");
   } catch (error) {

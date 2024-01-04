@@ -55,7 +55,9 @@ class Base extends TimeStamps {
         coordinates: user.coordinates,
         user: user._id,
       });
+
       await newRegion.save();
+
       user.regions.push(newRegion._id);
     } else {
       // If region exists, ensure the user is associated with it

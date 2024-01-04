@@ -1,6 +1,6 @@
 import { Request, Response } from "express";
 
-import { User, UserModel } from "../models/models";
+import { RegionModel, User, UserModel } from "../models/models";
 
 import { HTTP_STATUS_CODE } from "../constants";
 
@@ -128,6 +128,9 @@ export const deleteUser = async (req: Request, res: Response) => {
         .status(HTTP_STATUS_CODE.NOT_FOUND)
         .json({ message: "User not found!" });
     }
+
+    //Delete the User referenced in the Region
+    await RegionModel.updateMany({ user: id }, { $unset: { user: "" } });
 
     return res.status(HTTP_STATUS_CODE.OK).json("User successfully deleted!");
   } catch (error) {
